@@ -4,22 +4,17 @@ metadata:
   name: ic-webapp-ingress
   namespace: ic-webapp
   annotations:
-    # Spécifie que cet Ingress doit être géré par le AWS Load Balancer Controller
     kubernetes.io/ingress.class: alb
-    # Crée un ALB public (accessible depuis Internet)
     alb.ingress.kubernetes.io/scheme: internet-facing
-    # Route le trafic directement vers les IPs des pods pour de meilleures performances
     alb.ingress.kubernetes.io/target-type: ip
-    # FORCE L'OUVERTURE AUTOMATIQUE DES PORTS (5050, 8069, etc.)
     alb.ingress.kubernetes.io/manage-backend-security-group-rules: "true"
     alb.ingress.kubernetes.io/success-codes: "200-399"
-    # Rediriger HTTP vers HTTPS
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
     alb.ingress.kubernetes.io/ssl-redirect: '443'
 
 spec:
   rules:
-    - host: odoo.nuages.click   # <--- VOTRE SOUS-DOMAINE
+    - host: odoo.nuages.click
       http:
         paths:
           - path: /
@@ -29,7 +24,7 @@ spec:
                 name: odoo
                 port:
                   number: 8069
-    - host: pgadmin.nuages.click # <--- VOTRE SOUS-DOMAINE
+    - host: pgadmin.nuages.click 
       http:
         paths:
           - path: /
@@ -39,7 +34,7 @@ spec:
                 name: pg-admin
                 port:
                   number: 80
-    - host: ic-webapp.nuages.click # <--- VOTRE SOUS-DOMAINE
+    - host: ic-webapp.nuages.click
       http:
         paths:
           - path: /

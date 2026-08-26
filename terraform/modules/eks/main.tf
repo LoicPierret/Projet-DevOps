@@ -9,7 +9,7 @@ terraform {
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 21.0" # Mise à jour pour compatibilité avec AWS provider v6
+  version = "~> 21.0"
 
   name               = var.cluster_name
   kubernetes_version = var.cluster_version
@@ -19,12 +19,9 @@ module "eks" {
 
   access_entries = var.access_entries
 
-  # Contrôle l'accès public au point de terminaison du cluster.
   endpoint_public_access = true
   endpoint_private_access = true
 
-  # Active la gestion de l'AWS Load Balancer Controller comme un add-on EKS.
-  # Le module créera automatiquement le rôle IAM nécessaire.
   addons = {
     vpc-cni                = {
       before_compute = true
@@ -37,8 +34,6 @@ module "eks" {
   }
 
   node_security_group_tags = {
-    # Cette étiquette dit : "Ce Security Group appartient au cluster main-cluster"
-    # Le contrôleur la cherche pour savoir où ajouter les règles.
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   }
 
@@ -50,16 +45,12 @@ module "eks" {
 
       instance_types = var.node_group_instance_types
       iam_role_additional_policies = {
-        # 1. Obligatoire pour que le noeud rejoigne le cluster
         AmazonEKSWorkerNodePolicy = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
         
-        # 2. Obligatoire pour la gestion des IPs (VPC CNI)
         AmazonEKS_CNI_Policy = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
         
-        # 3. Obligatoire pour télécharger les images Docker système
         AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
         
-        # Permet à SSM de fonctionner
         AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
       }
     }
@@ -68,7 +59,7 @@ module "eks" {
   tags = merge(
     {
       "Name"        = var.cluster_name
-      "Environment" = "prod" # Exemple de tag standard
+      "Environment" = "prod"
     },
     var.tags
   )

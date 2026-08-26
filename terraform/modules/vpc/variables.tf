@@ -15,7 +15,6 @@ variable "private_subnet_cidrs" {
 
 variable "azs" {
   type = list(string)
-  # Pas de valeur par défaut, doit être fourni par le module appelant
 }
 
 variable "public_subnet_tags" {

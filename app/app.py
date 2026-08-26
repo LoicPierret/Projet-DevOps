@@ -7,7 +7,6 @@ import argparse
 
 app = Flask(__name__)
 
-# Get Odoo Url
 ODOO_URL = os.environ.get('ODOO_URL')
 PGADMIN_URL = os.environ.get('PGADMIN_URL')
 
@@ -22,7 +21,6 @@ if __name__ == "__main__":
           "\n"
           "")
 
-    # Check for Command Line Parameters for color
     parser = argparse.ArgumentParser()
     parser.add_argument('--odoo_url', required=False)
     parser.add_argument('--pgadmin_url', required=False)
@@ -52,5 +50,4 @@ if __name__ == "__main__":
         print("No command line argument or environment variable. Picking a Random url =")
         PGADMIN_URL="https://www.youtube.com/"
 
-    # Run Flask Application
     app.run(host="0.0.0.0", port=8080)

@@ -5,26 +5,20 @@ kind: Kustomization
 # géré par Terraform.
 
 resources:
-  # 1. Configuration du stockage
   - ebs/ebs-gp3-sc.yml
 
-  # 2. Secrets
   - odoo/odoo-secret.yml
   - pgadmin/pg-admin-secret.yml
 
-  # 3. Volumes de stockage persistants (PVC)
   - odoo/odoo-pvc.yml
   - pgadmin/pgadmin-pvc.yml
 
-  # 4. Déploiements des applications
   - odoo/odoo-deployment.yml
   - pgadmin/pg-admin-deployment.yml
   - ic-webapp/ic-webapp-deployment.yml
 
-  # 5. Services (ClusterIP)
   - odoo/odoo-clusterip.yml
   - pgadmin/pg_admin-clusterip.yml
   - ic-webapp/ic-webapp-clusterip.yml
 
-  # 6. Ingress (exposition des services)
   - ingress/alb-ingress.yml

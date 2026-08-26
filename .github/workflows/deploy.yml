@@ -12,20 +12,15 @@ on:
 #    branches: [main]
 
 env:
-  # Doit correspondre à la région de votre backend S3 et de votre cluster
   AWS_REGION: us-east-1
-  # Doit correspondre au nom du cluster défini dans votre main.tf
   EKS_CLUSTER_NAME: main-cluster
 
 jobs:
   deploy:
-    # Ce job ne s'exécute que si le workflow de CI a réussi et a été déclenché par un push
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
-    # Ajout des permissions nécessaires pour l'authentification OIDC
     permissions:
-      id-token: write # Requis pour demander un JWT (JSON Web Token)
-      contents: read  # Requis pour l'action actions/checkout
-    # Lie ce job à un environnement qui nécessite une approbation manuelle
+      id-token: write 
+      contents: read  
     environment:
       name: production
     runs-on: ubuntu-latest
@@ -33,12 +28,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # Récupère le code du commit exact qui a déclenché le workflow de CI
           ref: ${{ github.event.workflow_run.head_sha }}
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }} # ARN du rôle IAM à assumer
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }} 
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform

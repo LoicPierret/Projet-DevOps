@@ -17,9 +17,9 @@ spec:
         app: odoo
     spec:
       securityContext:
-        fsGroup: 101        # Force le volume à appartenir au groupe 101
-        runAsUser: 101      # Force le conteneur à tourner en utilisateur 101
-        runAsGroup: 101     # Force le conteneur à tourner en groupe 101
+        fsGroup: 101        
+        runAsUser: 101      
+        runAsGroup: 101     
 
       containers:
       - image: odoo
