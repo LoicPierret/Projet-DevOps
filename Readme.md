@@ -66,7 +66,7 @@ Le pipeline Jenkins orchestre le déploiement de bout en bout avec une isolation
 Quel que soit l'environnement, la sécurité est au cœur du projet :
 * **Scan de Vulnérabilités :** Intégration de **Snyk** dans les deux pipelines (GitHub & Jenkins) pour bloquer le code non sécurisé.
 * **Gestion des Secrets :**
-    * *Cloud :* AWS Secrets Manager & GitHub Secrets.
+    * *Cloud :* GitHub Secrets.
     * *On-Prem :* Ansible Vault pour chiffrer les variables sensibles dans le repo git.
 * **Isolation :** Les builds tournent dans des conteneurs éphémères pour ne pas polluer les environnements de build.
 
