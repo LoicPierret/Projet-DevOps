@@ -43,13 +43,20 @@ jobs:
         working-directory: ./terraform/app
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var="cicd_iam_role_arn=${{ secrets.AWS_IAM_ROLE_ARN }}"
+        run: terraform apply -auto-approve
+        env:
+          TF_VAR_cicd_iam_role_arn: ${{ secrets.AWS_IAM_ROLE_ARN }}
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
         working-directory: ./terraform/app
 
       - name: Configure kubectl for EKS
         run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
 
       - name: Deploy Kubernetes Manifests
+        env:
+          PGADMIN_PASSWORD: ${{ secrets.PGADMIN_PASSWORD }}
         run: |
+          echo "PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}" > ./kubernetes/pgadmin.env
           echo "Applying all Kubernetes manifests with Kustomize..."
           kubectl apply -k ./kubernetes
+          rm -f ./kubernetes/pgadmin.env

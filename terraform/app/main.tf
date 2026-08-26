@@ -44,7 +44,7 @@ module "rds" {
   db_identifier          = "main-db"
   db_name                = "odoo" 
   db_username            = "odoo"
-  db_password            = "password" # A remplacer par un secret
+  db_password            = var.db_password
   db_engine_version      = "16.6"
   db_subnet_group_name   = aws_db_subnet_group.rds_subnet_group.name
   db_vpc_security_group_ids = [module.rds_sg.security_group_id]

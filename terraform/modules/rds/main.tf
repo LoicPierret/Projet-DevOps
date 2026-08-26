@@ -16,7 +16,7 @@ module "rds" {
   engine               = var.db_engine
   engine_version       = var.db_engine_version
   major_engine_version = var.db_major_engine_version
-  family               = "${var.db_engine}${var.db_major_engine_version}" # Ex: "postgres15"
+  family               = "${var.db_engine}${var.db_major_engine_version}"
   instance_class       = var.db_instance_class
 
   allocated_storage     = var.db_allocated_storage
