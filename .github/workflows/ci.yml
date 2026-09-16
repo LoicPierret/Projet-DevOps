@@ -77,7 +77,7 @@ jobs:
 
       - name: Terraform Init
       #backend a remettre ensuite
-        run: terraform init -backend =false
+        run: terraform init -backend=false
         working-directory: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform Validate
