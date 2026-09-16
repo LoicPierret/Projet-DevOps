@@ -43,12 +43,10 @@ resource "aws_internet_gateway" "gw" {
 }
 
 resource "aws_eip" "nat" {
-  # Une seule EIP pour la NAT Gateway
   domain = "vpc"
 }
 
 resource "aws_nat_gateway" "gw" {
-  # Une seule NAT Gateway dans le premier subnet public
   allocation_id = aws_eip.nat.id
   subnet_id     = aws_subnet.public_subnet[0].id
 
@@ -72,7 +70,6 @@ resource "aws_route_table_association" "public_association" {
 }
 
 resource "aws_route_table" "private" {
-  # Une seule table de routage pour tous les subnets privés
   vpc_id = aws_vpc.main.id
 
   route {

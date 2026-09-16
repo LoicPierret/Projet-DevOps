@@ -5,5 +5,5 @@ crash.log
 .terraform/
 *.terraform.lock.hcl
 *.tfplan
-
+*.pgadmin.env
 .vscode/

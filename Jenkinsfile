@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Variables globales
         ANSIBLE_DIR = "ansible"
         IMAGE_NAME = "ic-webapp"
         DOCKERHUB_ID = "azeriock"
@@ -10,7 +9,6 @@ pipeline {
         ANSIBLE_IMAGE_AGENT = "registry.gitlab.com/robconnolly/docker-ansible:latest"
     }
     stages{
-        // Clonage du dépôt
         stage('Checkout') {
             steps {
                 echo "Clonage du dépôt"
@@ -18,10 +16,8 @@ pipeline {
             }
         }
 
-        // Construction des images Docker
         stage('Build Docker Images') {
             steps {
-                // Construction de l'image Docker ic-webapp
                 sh '''
                 docker build --no-cache -f ./app/Dockerfile -t ${DOCKERHUB_ID}/${IMAGE_NAME} ./app
                 '''
@@ -44,7 +40,6 @@ pipeline {
                 }
         }
 
-        // Tests techniques : Démarrage des conteneurs
         stage('Test technique du conteneur') {
             steps {
                 echo "Lancement des conteneurs pour tests"
@@ -73,7 +68,6 @@ pipeline {
             }
         }
 
-        // Push des images vers le registre (prod uniquement)
         stage('Push to Registry') {
             steps {
                 echo " Push des images vers le registre Docker"
@@ -100,7 +94,6 @@ pipeline {
             }
         }
 
-        // DDéploiement réel sur les serveurs via Ansible
         stage('Déploiement via Ansible') {
             agent{
                 docker { 

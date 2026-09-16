@@ -9,14 +9,14 @@ terraform {
 
 module "rds" {
   source  = "terraform-aws-modules/rds/aws"
-  version = "~> 6.13" # Pensez à fixer la version pour la stabilité
+  version = "~> 6.13"
 
   identifier = var.db_identifier
   apply_immediately = true
   engine               = var.db_engine
   engine_version       = var.db_engine_version
   major_engine_version = var.db_major_engine_version
-  family               = "${var.db_engine}${var.db_major_engine_version}" # Ex: "postgres15"
+  family               = "${var.db_engine}${var.db_major_engine_version}"
   instance_class       = var.db_instance_class
 
   allocated_storage     = var.db_allocated_storage
@@ -31,7 +31,6 @@ module "rds" {
   vpc_security_group_ids = var.db_vpc_security_group_ids
   db_subnet_group_name   = var.db_subnet_group_name
 
-  # Pour la simplicité, on désactive la suppression finale. A ajuster pour la prod.
   skip_final_snapshot = true
   deletion_protection = false
 
