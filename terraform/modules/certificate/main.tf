@@ -15,7 +15,7 @@ module "acm" {
   ]
 
   wait_for_validation = true
-  validation_method = "DNS"
+  validation_method   = "DNS"
 
   tags = {
     Name        = "${var.domain_name}-cert"

@@ -1,10 +1,10 @@
 terraform {
   backend "s3" {
-    bucket                  = "terraform-bucket-loic"
-    key                     = "loic-dev.tfstate"
-    region                  = "us-east-1"
-#   profile                 = "loic"
-    dynamodb_table          = "terraform-locks"
+    bucket = "terraform-bucket-loic"
+    key    = "loic-dev.tfstate"
+    region = "us-east-1"
+    #   profile                 = "loic"
+    dynamodb_table = "terraform-locks"
   }
   required_version = ">= 1.5.0"
 
@@ -25,8 +25,8 @@ terraform {
 }
 
 provider "aws" {
-  region  = var.aws_region
-# profile = "loic"
+  region = var.aws_region
+  # profile = "loic"
 }
 
 provider "kubernetes" {

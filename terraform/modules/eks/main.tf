@@ -19,18 +19,18 @@ module "eks" {
 
   access_entries = var.access_entries
 
-  endpoint_public_access = true
+  endpoint_public_access  = true
   endpoint_private_access = true
 
   addons = {
-    vpc-cni                = {
+    vpc-cni = {
       before_compute = true
     }
-    coredns                = {}
+    coredns = {}
     eks-pod-identity-agent = {
       before_compute = true
     }
-    kube-proxy             = {}
+    kube-proxy = {}
   }
 
   node_security_group_tags = {
@@ -46,11 +46,11 @@ module "eks" {
       instance_types = var.node_group_instance_types
       iam_role_additional_policies = {
         AmazonEKSWorkerNodePolicy = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-        
+
         AmazonEKS_CNI_Policy = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-        
+
         AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-        
+
         AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
       }
     }

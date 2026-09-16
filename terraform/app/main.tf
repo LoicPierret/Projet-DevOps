@@ -7,7 +7,7 @@ module "vpc" {
     "kubernetes.io/role/elb" = "1"
   }
   private_subnet_tags = {
-    "kubernetes.io/role/internal-elb" = "1"
+    "kubernetes.io/role/internal-elb"    = "1"
     "kubernetes.io/cluster/main-cluster" = "shared"
   }
 }
@@ -41,12 +41,12 @@ resource "aws_db_subnet_group" "rds_subnet_group" {
 module "rds" {
   source = "../modules/rds"
 
-  db_identifier          = "main-db"
-  db_name                = "odoo" 
-  db_username            = "odoo"
-  db_password            = var.db_password
-  db_engine_version      = "16.6"
-  db_subnet_group_name   = aws_db_subnet_group.rds_subnet_group.name
+  db_identifier             = "main-db"
+  db_name                   = "odoo"
+  db_username               = "odoo"
+  db_password               = var.db_password
+  db_engine_version         = "16.6"
+  db_subnet_group_name      = aws_db_subnet_group.rds_subnet_group.name
   db_vpc_security_group_ids = [module.rds_sg.security_group_id]
 }
 
@@ -56,7 +56,7 @@ module "eks" {
   cluster_name       = "main-cluster"
   vpc_id             = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnets
-  
+
 
   access_entries = {
     mon_acces_perso = {
@@ -64,7 +64,7 @@ module "eks" {
 
       policy_associations = {
         admin = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
           access_scope = { type = "cluster" }
         }
       }
@@ -87,10 +87,10 @@ module "eks" {
 
 module "ebs_csi_irsa_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "5.60.0" 
+  version = "5.60.0"
 
   role_name_prefix = "ebs-csi-"
-  
+
   attach_ebs_csi_policy = true
 
   oidc_providers = {
@@ -106,10 +106,10 @@ module "ebs_csi_irsa_role" {
 }
 
 resource "aws_eks_addon" "ebs_csi" {
-  cluster_name             = module.eks.cluster_name
-  addon_name               = "aws-ebs-csi-driver"
-  addon_version            = null 
-  resolve_conflicts_on_create = "OVERWRITE" 
+  cluster_name                = module.eks.cluster_name
+  addon_name                  = "aws-ebs-csi-driver"
+  addon_version               = null
+  resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
 
   service_account_role_arn = module.ebs_csi_irsa_role.iam_role_arn
@@ -136,7 +136,7 @@ resource "kubernetes_config_map_v1" "odoo_config" {
   ]
   data = {
     HOST = module.rds.db_instance_address # Récupération dynamique de l'adresse RDS
-    USER = module.rds.db_username        # Récupération dynamique de l'utilisateur
+    USER = module.rds.db_username         # Récupération dynamique de l'utilisateur
   }
 }
 
@@ -144,7 +144,7 @@ module "aws_load_balancer_controller_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "5.60.0"
 
-  role_name_prefix = "alb-controller-"
+  role_name_prefix                       = "alb-controller-"
   attach_load_balancer_controller_policy = true
 
   oidc_providers = {
@@ -160,15 +160,15 @@ module "aws_load_balancer_controller_irsa" {
 }
 
 resource "helm_release" "aws_load_balancer_controller" {
-  name       = "aws-load-balancer-controller"
-  repository = "https://aws.github.io/eks-charts"
-  chart      = "aws-load-balancer-controller"
-  namespace  = "kube-system"
-  version    = "1.10.1" 
-  depends_on = [module.aws_load_balancer_controller_irsa]
-  replace         = true  
-  atomic          = true 
-  cleanup_on_fail = true 
+  name            = "aws-load-balancer-controller"
+  repository      = "https://aws.github.io/eks-charts"
+  chart           = "aws-load-balancer-controller"
+  namespace       = "kube-system"
+  version         = "1.10.1"
+  depends_on      = [module.aws_load_balancer_controller_irsa]
+  replace         = true
+  atomic          = true
+  cleanup_on_fail = true
 
   values = [
     yamlencode({
@@ -207,15 +207,15 @@ locals {
     "odoo",
     "pgadmin",
     "ic-webapp"
-    
+
   ])
 }
 
 resource "aws_route53_record" "apps" {
   for_each = local.app_subdomains
-  zone_id = data.aws_route53_zone.nuages.zone_id
-  name    = "${each.key}.nuages.click" 
-  type    = "A"
+  zone_id  = data.aws_route53_zone.nuages.zone_id
+  name     = "${each.key}.nuages.click"
+  type     = "A"
 
   alias {
     name                   = data.aws_lb.ingress_alb.dns_name

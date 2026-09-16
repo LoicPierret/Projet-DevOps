@@ -11,8 +11,8 @@ module "rds" {
   source  = "terraform-aws-modules/rds/aws"
   version = "~> 6.13"
 
-  identifier = var.db_identifier
-  apply_immediately = true
+  identifier           = var.db_identifier
+  apply_immediately    = true
   engine               = var.db_engine
   engine_version       = var.db_engine_version
   major_engine_version = var.db_major_engine_version

@@ -15,5 +15,5 @@ variable "cicd_iam_role_arn" {
 variable "db_password" {
   type        = string
   description = "Mot de passe RDS"
-  sensitive   = true 
+  sensitive   = true
 }
