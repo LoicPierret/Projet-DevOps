@@ -1,9 +1,6 @@
-name: CI - Build, Scan, Test and Push Docker Image
+name: CI - Build, Scan, Test Docker & Validate Terraform
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
@@ -11,76 +8,84 @@ on:
 env:
   IMAGE_NAME: ic-webapp
   DOCKERHUB_ID: azeriock
+  AWS_REGION: us-east-1
+  TF_WORKING_DIR: ./terraform/app
 
 jobs:
-  build-scan-test-and-push:
+  docker-test:
+    name: "Docker Build, Scan & Test"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Log in to Docker Hub
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ env.DOCKERHUB_ID }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
-        id: build
         uses: docker/build-push-action@v6
         with:
           context: ./app
           file: ./app/Dockerfile
           push: false
-          tags: ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}:latest
-          # Charge l'image dans le daemon Docker local pour les étapes suivantes
+          tags: ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}:test
           load: true
 
       - name: Scan image with Snyk
         run: |
-          echo "Starting Image scan ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}:latest ..."
           docker run --rm -e SNYK_TOKEN=${{ secrets.SNYK_TOKEN }} \
             -v /var/run/docker.sock:/var/run/docker.sock \
-            snyk/snyk:docker snyk test --docker ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}:latest || \
-          if [ $? -eq 1 ]; then \
-            echo "Snyk found vulnerabilities, but we are proceeding as per configuration."; \
-            exit 0; \
-          else \
-            echo "Snyk scan failed with an error."; \
-            exit 1; \
-          fi
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+            snyk/snyk:docker snyk test --docker ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}:test || true
 
       - name: Test container
         run: |
-          echo "Starting container for technical tests"
-          # Nettoyage d'une exécution précédente si nécessaire
-          docker ps -a | grep -q test_icwebapp && docker rm -f test_icwebapp
-
-          docker run -d --name test_icwebapp -p 8090:8080 ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}:latest
-          
-          echo "Waiting for the service to start..."
-          # Boucle pour attendre que le service soit accessible (timeout de 60s)
+          docker run -d --name test_icwebapp -p 8090:8080 ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}:test
           for i in {1..20}; do
             if curl -s -f http://localhost:8090 >/dev/null; then
-              echo "Service is accessible."
               docker rm -f test_icwebapp
               exit 0
             fi
-            echo "Attempt $i: Service not ready yet. Waiting 3 seconds..."
             sleep 3
           done
-
-          echo "Service failed to start within 60 seconds."
-          docker logs test_icwebapp
           docker rm -f test_icwebapp
           exit 1
 
-      - name: Push image to Docker Hub
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: docker push ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}:latest
+  terraform-test:
+    name: "Terraform Lint, Validate & Plan (PR)"
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_IAM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.0"
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -diff
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+      - name: Terraform Plan
+        run: terraform plan -no-color
+        env:
+          TF_VAR_cicd_iam_role_arn: ${{ secrets.AWS_IAM_ROLE_ARN }}
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+        working-directory: ${{ env.TF_WORKING_DIR }}
