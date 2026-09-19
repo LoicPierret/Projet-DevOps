@@ -7,3 +7,4 @@ crash.log
 *.tfplan
 *.pgadmin.env
 .vscode/
+.claude/
