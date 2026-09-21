@@ -25,11 +25,23 @@ variable "project" {
 variable "environment" {
   description = "Environnement cible (dev, staging, prod), utilisé pour l'étiquetage des ressources."
   type        = string
-  default     = "dev"
+  default     = "prod"
 }
 
 variable "noncurrent_version_expiration_days" {
   description = "Nombre de jours après lesquels les versions non-courantes du bucket de state sont expirées, afin de maîtriser les coûts de stockage."
   type        = number
   default     = 90
+}
+
+variable "github_org" {
+  description = "Organisation ou utilisateur GitHub propriétaire du dépôt autorisé à assumer le rôle CI/CD via OIDC."
+  type        = string
+  default     = "LoicPierret"
+}
+
+variable "github_repo" {
+  description = "Nom du dépôt GitHub autorisé à assumer le rôle CI/CD via OIDC."
+  type        = string
+  default     = "Projet-DevOps"
 }
