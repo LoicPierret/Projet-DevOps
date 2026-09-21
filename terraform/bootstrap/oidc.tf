@@ -195,6 +195,16 @@ data "aws_iam_policy_document" "github_actions_infra" {
     ]
   }
 
+  # Le module EKS résout l'identité de l'appelant via
+  # data.aws_iam_session_context (iam:GetRole sur le rôle assumé, ici le rôle
+  # CI lui-même). Lecture seule, scopée à ce seul rôle.
+  statement {
+    sid       = "ReadOwnRole"
+    effect    = "Allow"
+    actions   = ["iam:GetRole"]
+    resources = [aws_iam_role.github_actions_cicd.arn]
+  }
+
   # iam:PassRole : nécessaire pour associer les rôles au cluster EKS, au node
   # group et aux add-ons (service_account_role_arn de aws-ebs-csi-driver).
   statement {
