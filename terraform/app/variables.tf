@@ -17,3 +17,15 @@ variable "db_password" {
   description = "Mot de passe RDS"
   sensitive   = true
 }
+
+variable "domain_name" {
+  description = "Nom de domaine principal de l'application (hosted zone Route 53, certificat ACM et enregistrements DNS)."
+  type        = string
+  default     = "nuages.click"
+}
+
+variable "environment" {
+  description = "Environnement cible (dev, staging, prod), utilisé pour l'étiquetage des ressources."
+  type        = string
+  default     = "prod"
+}

@@ -183,16 +183,31 @@ data "aws_iam_policy_document" "github_actions_infra" {
       "iam:ListPolicyVersions",
       "iam:ListEntitiesForPolicy",
       "iam:TagPolicy",
+      "iam:UntagPolicy",
     ]
     resources = [
       "arn:aws:iam::*:role/ebs-csi-*",
       "arn:aws:iam::*:role/alb-controller-*",
-      "arn:aws:iam::*:policy/ebs-csi-*",
-      "arn:aws:iam::*:policy/alb-controller-*",
+      "arn:aws:iam::*:role/external-dns-*",
+      # Policies créées par le module iam-role-for-service-accounts-eks
+      # (name_prefix = policy_name_prefix "AmazonEKS_" + nom de la policy).
+      "arn:aws:iam::*:policy/AmazonEKS_EBS_CSI_Policy-*",
+      "arn:aws:iam::*:policy/AmazonEKS_AWS_Load_Balancer_Controller-*",
+      "arn:aws:iam::*:policy/AmazonEKS_External_DNS_Policy-*",
       "arn:aws:iam::*:role/${local.eks_cluster_name}-cluster-*",
       "arn:aws:iam::*:policy/${local.eks_cluster_name}-cluster-*",
       "arn:aws:iam::*:role/${local.eks_node_group_name}-eks-node-group-*",
     ]
+  }
+
+  # Le module EKS résout l'identité de l'appelant via
+  # data.aws_iam_session_context (iam:GetRole sur le rôle assumé, ici le rôle
+  # CI lui-même). Lecture seule, scopée à ce seul rôle.
+  statement {
+    sid       = "ReadOwnRole"
+    effect    = "Allow"
+    actions   = ["iam:GetRole"]
+    resources = [aws_iam_role.github_actions_cicd.arn]
   }
 
   # iam:PassRole : nécessaire pour associer les rôles au cluster EKS, au node
@@ -283,8 +298,19 @@ data "aws_iam_policy_document" "github_actions_infra" {
     resources = ["arn:aws:logs:*:*:log-group:*"]
   }
 
+  # Lecture des AMI EKS optimisées : le module EKS (node group managé) résout
+  # l'AMI via data.aws_ssm_parameter sur les paramètres publics AWS.
+  statement {
+    sid       = "ReadEksOptimizedAmiParameters"
+    effect    = "Allow"
+    actions   = ["ssm:GetParameter"]
+    resources = ["arn:aws:ssm:*::parameter/aws/service/eks/optimized-ami/*"]
+  }
+
   # Fournisseur OIDC du cluster EKS,
   # créé par le module EKS (enable_irsa = true) et consommé par les rôles IRSA.
+  # Scopé aux fournisseurs OIDC EKS : exclut le fournisseur GitHub Actions
+  # (token.actions.githubusercontent.com) dont dépend ce rôle.
   statement {
     sid    = "EksOidcProviderManagement"
     effect = "Allow"
@@ -296,7 +322,7 @@ data "aws_iam_policy_document" "github_actions_infra" {
       "iam:UpdateOpenIDConnectProviderThumbprint",
       "iam:AddClientIDToOpenIDConnectProvider",
     ]
-    resources = ["arn:aws:iam::*:oidc-provider/*"]
+    resources = ["arn:aws:iam::*:oidc-provider/oidc.eks.*.amazonaws.com/id/*"]
   }
 }
 

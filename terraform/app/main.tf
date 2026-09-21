@@ -185,41 +185,76 @@ resource "helm_release" "aws_load_balancer_controller" {
   ]
 }
 
+# Hosted zone créée et maintenue par terraform/bootstrap (NS stables, délégation
+# chez le registrar à faire une seule fois).
+data "aws_route53_zone" "main" {
+  name         = var.domain_name
+  private_zone = false
+}
+
 module "ssl_certificate" {
   source = "../modules/certificate"
 
-  domain_name = "nuages.click"
-  environment = "prod"
+  domain_name = var.domain_name
+  zone_id     = data.aws_route53_zone.main.zone_id
+  environment = var.environment
 }
 
-data "aws_lb" "ingress_alb" {
+# ExternalDNS : crée et nettoie automatiquement les enregistrements Route 53 à
+# partir des hôtes déclarés dans les Ingress (déployés hors Terraform, par
+# kubectl ou ArgoCD). Évite de référencer l'ALB, inexistant avant le déploiement
+# de l'Ingress. Droits IAM limités à la hosted zone du domaine.
+module "external_dns_irsa" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "5.60.0"
+
+  role_name_prefix = "external-dns-"
+
+  attach_external_dns_policy    = true
+  external_dns_hosted_zone_arns = [data.aws_route53_zone.main.arn]
+
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["kube-system:external-dns"]
+    }
+  }
+
   tags = {
-    "ingress.k8s.aws/stack" = "ic-webapp/ic-webapp-ingress"
+    Name = "iam-role-external-dns"
   }
 }
 
-data "aws_route53_zone" "nuages" {
-  name = "nuages.click"
-}
+resource "helm_release" "external_dns" {
+  name            = "external-dns"
+  repository      = "https://kubernetes-sigs.github.io/external-dns/"
+  chart           = "external-dns"
+  namespace       = "kube-system"
+  version         = "1.15.0"
+  depends_on      = [module.external_dns_irsa, helm_release.aws_load_balancer_controller]
+  atomic          = true
+  cleanup_on_fail = true
 
-locals {
-  app_subdomains = toset([
-    "odoo",
-    "pgadmin",
-    "ic-webapp"
-
-  ])
-}
-
-resource "aws_route53_record" "apps" {
-  for_each = local.app_subdomains
-  zone_id  = data.aws_route53_zone.nuages.zone_id
-  name     = "${each.key}.nuages.click"
-  type     = "A"
-
-  alias {
-    name                   = data.aws_lb.ingress_alb.dns_name
-    zone_id                = data.aws_lb.ingress_alb.zone_id
-    evaluate_target_health = true
-  }
+  values = [
+    yamlencode({
+      provider = {
+        name = "aws"
+      }
+      sources       = ["ingress"]
+      domainFilters = [var.domain_name]
+      # "sync" supprime aussi les enregistrements lorsqu'un Ingress disparaît
+      # (GitOps) ; seuls les enregistrements marqués par ce txtOwnerId sont gérés.
+      policy     = "sync"
+      registry   = "txt"
+      txtOwnerId = module.eks.cluster_name
+      extraArgs  = ["--aws-zone-type=public"]
+      serviceAccount = {
+        create = true
+        name   = "external-dns"
+        annotations = {
+          "eks.amazonaws.com/role-arn" = module.external_dns_irsa.iam_role_arn
+        }
+      }
+    })
+  ]
 }

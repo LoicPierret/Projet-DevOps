@@ -28,6 +28,12 @@ variable "environment" {
   default     = "prod"
 }
 
+variable "domain_name" {
+  description = "Nom de domaine principal de l'application pour lequel la hosted zone Route 53 est créée. Doit correspondre à var.domain_name de terraform/app."
+  type        = string
+  default     = "nuages.click"
+}
+
 variable "noncurrent_version_expiration_days" {
   description = "Nombre de jours après lesquels les versions non-courantes du bucket de state sont expirées, afin de maîtriser les coûts de stockage."
   type        = number
