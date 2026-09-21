@@ -23,6 +23,16 @@ output "github_actions_role_arn" {
   value       = aws_iam_role.github_actions_cicd.arn
 }
 
+output "route53_zone_id" {
+  description = "Identifiant de la hosted zone Route 53 du domaine de l'application."
+  value       = module.route53.zone_id
+}
+
+output "route53_name_servers" {
+  description = "Serveurs de noms de la hosted zone, à configurer chez le registrar du domaine (une seule fois)."
+  value       = module.route53.name_servers
+}
+
 output "github_actions_oidc_provider_arn" {
   description = "ARN du fournisseur OIDC GitHub Actions enregistré dans IAM."
   value       = aws_iam_openid_connect_provider.github_actions.arn

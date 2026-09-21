@@ -188,10 +188,12 @@ data "aws_iam_policy_document" "github_actions_infra" {
     resources = [
       "arn:aws:iam::*:role/ebs-csi-*",
       "arn:aws:iam::*:role/alb-controller-*",
+      "arn:aws:iam::*:role/external-dns-*",
       # Policies créées par le module iam-role-for-service-accounts-eks
       # (name_prefix = policy_name_prefix "AmazonEKS_" + nom de la policy).
       "arn:aws:iam::*:policy/AmazonEKS_EBS_CSI_Policy-*",
       "arn:aws:iam::*:policy/AmazonEKS_AWS_Load_Balancer_Controller-*",
+      "arn:aws:iam::*:policy/AmazonEKS_External_DNS_Policy-*",
       "arn:aws:iam::*:role/${local.eks_cluster_name}-cluster-*",
       "arn:aws:iam::*:policy/${local.eks_cluster_name}-cluster-*",
       "arn:aws:iam::*:role/${local.eks_node_group_name}-eks-node-group-*",
