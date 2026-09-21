@@ -53,9 +53,9 @@ jobs:
   terraform-test:
     name: "Terraform Lint, Validate & Plan (PR)"
     runs-on: ubuntu-latest
-    #permissions:
-    #  id-token: write
-    #  contents: read
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
