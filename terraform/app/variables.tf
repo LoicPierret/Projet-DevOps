@@ -29,3 +29,21 @@ variable "environment" {
   type        = string
   default     = "prod"
 }
+
+variable "gitops_repo_url" {
+  description = "URL HTTPS du dépôt GitOps (public) surveillé par ArgoCD."
+  type        = string
+  default     = "https://github.com/LoicPierret/GitOps_Kubernetes.git"
+}
+
+variable "gitops_target_revision" {
+  description = "Branche ou tag du dépôt GitOps à synchroniser."
+  type        = string
+  default     = "main"
+}
+
+variable "gitops_bootstrap_path" {
+  description = "Chemin, dans le dépôt GitOps, contenant les manifests Application racine (pattern app-of-apps)."
+  type        = string
+  default     = "bootstrap"
+}

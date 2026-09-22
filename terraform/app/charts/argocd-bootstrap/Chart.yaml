@@ -1,0 +1,10 @@
+apiVersion: v2
+name: argocd-bootstrap
+description: >-
+  Chart local minimal ("wrapper") créant l'Application ArgoCD racine
+  (pattern app-of-apps). Évite de dépendre d'un provider Terraform tiers pour
+  créer une ressource personnalisée (CRD Application) : le provider helm
+  gère déjà de façon fiable les valeurs connues seulement après l'apply
+  (contrairement au provider kubectl, voir terraform/app/argocd.tf).
+type: application
+version: 0.1.0
