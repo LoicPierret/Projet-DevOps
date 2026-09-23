@@ -20,12 +20,19 @@ module "aws_load_balancer_controller_irsa" {
 }
 
 resource "helm_release" "aws_load_balancer_controller" {
-  name            = "aws-load-balancer-controller"
-  repository      = "https://aws.github.io/eks-charts"
-  chart           = "aws-load-balancer-controller"
-  namespace       = "kube-system"
-  version         = "1.10.1"
-  depends_on      = [module.aws_load_balancer_controller_irsa]
+  name       = "aws-load-balancer-controller"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  namespace  = "kube-system"
+  version    = "1.10.1"
+  # depends_on sur le module entier (pas seulement l'IRSA) : le webhook de
+  # mutation de ce chart intercepte TOUT Service créé dans le cluster dès son
+  # enregistrement, avant même que ses pods ne soient prêts (failurePolicy
+  # Fail par défaut). S'il démarre en parallèle des addons EKS (coredns
+  # notamment, qui crée aussi un Service), leur création peut être rejetée
+  # par un webhook pas encore opérationnel. On attend donc que tout
+  # module.eks (cluster, nœuds, addons) soit terminé avant de l'installer.
+  depends_on      = [module.eks, module.aws_load_balancer_controller_irsa]
   replace         = true
   atomic          = true
   cleanup_on_fail = true

@@ -11,6 +11,11 @@ resource "helm_release" "argocd" {
   create_namespace = true
   atomic           = true
   cleanup_on_fail  = true
+  # Le chart ArgoCD crée plusieurs Service (argocd-server, repo-server,
+  # redis...) : on attend que le contrôleur ALB soit pleinement opérationnel
+  # (pods prêts, pas seulement installé) pour éviter le même risque de
+  # webhook pas encore servi que pour l'addon coredns (voir alb-controller.tf).
+  depends_on = [helm_release.aws_load_balancer_controller]
 
   values = [
     yamlencode({
