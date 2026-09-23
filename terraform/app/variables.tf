@@ -12,12 +12,6 @@ variable "cicd_iam_role_arn" {
   type        = string
 }
 
-variable "db_password" {
-  type        = string
-  description = "Mot de passe RDS"
-  sensitive   = true
-}
-
 variable "domain_name" {
   description = "Nom de domaine principal de l'application (hosted zone Route 53, certificat ACM et enregistrements DNS)."
   type        = string

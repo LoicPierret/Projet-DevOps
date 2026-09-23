@@ -87,5 +87,4 @@ jobs:
         run: terraform plan -no-color
         env:
           TF_VAR_cicd_iam_role_arn: ${{ secrets.AWS_IAM_ROLE_ARN }}
-          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
         working-directory: ${{ env.TF_WORKING_DIR }}

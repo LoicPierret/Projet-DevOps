@@ -24,8 +24,13 @@ module "rds" {
 
   db_name  = var.db_name
   username = var.db_username
-  password = var.db_password
   port     = var.db_port
+
+  # Mot de passe généré et géré par RDS lui-même, stocké dans Secrets
+  # Manager (rotation incluse). C'est déjà le défaut de ce module, mais on le
+  # rend explicite : un mot de passe fourni par variable serait de toute
+  # façon silencieusement ignoré tant que ce flag est actif.
+  manage_master_user_password = true
 
   multi_az               = var.db_multi_az
   vpc_security_group_ids = var.db_vpc_security_group_ids

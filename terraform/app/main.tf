@@ -31,7 +31,7 @@ module "rds_sg" {
 
 resource "aws_db_subnet_group" "rds_subnet_group" {
   name       = "rds-subnet-group"
-  subnet_ids = module.vpc.private_subnets
+  subnet_ids = module.vpc.db_subnets
 
   tags = {
     Name = "RDS Subnet Group"
@@ -44,8 +44,7 @@ module "rds" {
   db_identifier             = "main-db"
   db_name                   = "odoo"
   db_username               = "odoo"
-  db_password               = var.db_password
-  db_engine_version         = "16.6"
+  db_engine_version         = "16.15" # Dernière version disponible au 2026-09-23 (vérifié via `aws rds describe-db-engine-versions`).
   db_subnet_group_name      = aws_db_subnet_group.rds_subnet_group.name
   db_vpc_security_group_ids = [module.rds_sg.security_group_id]
 }

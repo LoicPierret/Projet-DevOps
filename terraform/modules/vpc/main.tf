@@ -38,6 +38,18 @@ resource "aws_subnet" "private_subnet" {
   )
 }
 
+resource "aws_subnet" "db_subnet" {
+  count             = length(var.db_subnet_cidrs)
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = var.db_subnet_cidrs[count.index]
+  availability_zone = var.azs[count.index]
+
+  tags = merge(
+    { "Name" = "db-subnet-${var.azs[count.index]}" },
+    var.db_subnet_tags
+  )
+}
+
 resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.main.id
 }
@@ -82,4 +94,19 @@ resource "aws_route_table_association" "private_association" {
   count          = length(var.private_subnet_cidrs)
   subnet_id      = aws_subnet.private_subnet[count.index].id
   route_table_id = aws_route_table.private.id
+}
+
+# Table de routage dédiée aux sous-réseaux de base de données : uniquement la
+# route locale ajoutée automatiquement par AWS (vers le CIDR de la VPC).
+# Aucune route vers l'IGW ni le NAT Gateway : isolation stricte, RDS ne peut
+# joindre que le reste de la VPC (dont les nœuds EKS via le security group),
+# jamais Internet.
+resource "aws_route_table" "db" {
+  vpc_id = aws_vpc.main.id
+}
+
+resource "aws_route_table_association" "db_association" {
+  count          = length(var.db_subnet_cidrs)
+  subnet_id      = aws_subnet.db_subnet[count.index].id
+  route_table_id = aws_route_table.db.id
 }

@@ -13,6 +13,11 @@ output "private_subnets" {
   value       = aws_subnet.private_subnet[*].id
 }
 
+output "db_subnets" {
+  description = "List of IDs of the isolated database subnets (no route to the internet)."
+  value       = aws_subnet.db_subnet[*].id
+}
+
 output "internet_gateway_id" {
   description = "The ID of the Internet Gateway"
   value       = aws_internet_gateway.gw.id
