@@ -1,0 +1,9 @@
+apiVersion: v2
+name: external-secrets-bootstrap
+description: >-
+  Chart local minimal ("wrapper") créant le ClusterSecretStore d'External
+  Secrets Operator, qui connecte le cluster à AWS Secrets Manager via le rôle
+  IRSA dédié. Même technique que charts/argocd-bootstrap : évite un provider
+  Terraform tiers pour créer une ressource personnalisée (CRD).
+type: application
+version: 0.1.0

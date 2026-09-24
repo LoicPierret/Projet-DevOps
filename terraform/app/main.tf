@@ -44,7 +44,8 @@ module "rds" {
   db_identifier             = "main-db"
   db_name                   = "odoo"
   db_username               = "odoo"
-  db_engine_version         = "16.15" # Dernière version disponible au 2026-09-23 (vérifié via `aws rds describe-db-engine-versions`).
+  db_password               = random_password.odoo_db.result # Généré et stocké dans Secrets Manager, voir external-secrets.tf.
+  db_engine_version         = "16.15"                        # Dernière version disponible au 2026-09-23 (vérifié via `aws rds describe-db-engine-versions`).
   db_subnet_group_name      = aws_db_subnet_group.rds_subnet_group.name
   db_vpc_security_group_ids = [module.rds_sg.security_group_id]
 }

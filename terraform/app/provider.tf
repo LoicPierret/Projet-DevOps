@@ -21,6 +21,10 @@ terraform {
       source  = "hashicorp/helm"
       version = ">= 2.12.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.5.0"
+    }
   }
 }
 

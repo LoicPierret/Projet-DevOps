@@ -1,3 +1,11 @@
+# Clé KMS par défaut d'AWS pour Secrets Manager : chiffre à la fois le mot de
+# passe RDS auto-géré et les secrets applicatifs créés par terraform/app
+# (pgadmin, odoo-db-password). Utilisée pour scoper précisément le droit KMS
+# du rôle CI/CD plutôt que d'ouvrir sur toutes les clés du compte.
+data "aws_kms_alias" "secretsmanager" {
+  name = "alias/aws/secretsmanager"
+}
+
 # Fournisseur OIDC permettant à GitHub Actions de s'authentifier auprès d'AWS
 # via des jetons temporaires (sts:AssumeRoleWithWebIdentity), sans clé d'accès
 # long-lived stockée en secret GitHub.
@@ -189,11 +197,13 @@ data "aws_iam_policy_document" "github_actions_infra" {
       "arn:aws:iam::*:role/ebs-csi-*",
       "arn:aws:iam::*:role/alb-controller-*",
       "arn:aws:iam::*:role/external-dns-*",
+      "arn:aws:iam::*:role/external-secrets-*",
       # Policies créées par le module iam-role-for-service-accounts-eks
       # (name_prefix = policy_name_prefix "AmazonEKS_" + nom de la policy).
       "arn:aws:iam::*:policy/AmazonEKS_EBS_CSI_Policy-*",
       "arn:aws:iam::*:policy/AmazonEKS_AWS_Load_Balancer_Controller-*",
       "arn:aws:iam::*:policy/AmazonEKS_External_DNS_Policy-*",
+      "arn:aws:iam::*:policy/AmazonEKS_External_Secrets_Policy-*",
       "arn:aws:iam::*:role/${local.eks_cluster_name}-cluster-*",
       "arn:aws:iam::*:policy/${local.eks_cluster_name}-cluster-*",
       "arn:aws:iam::*:role/${local.eks_node_group_name}-eks-node-group-*",
@@ -305,6 +315,42 @@ data "aws_iam_policy_document" "github_actions_infra" {
     effect    = "Allow"
     actions   = ["ssm:GetParameter"]
     resources = ["arn:aws:ssm:*::parameter/aws/service/eks/optimized-ami/*"]
+  }
+
+  # Secrets Secrets Manager gérés par terraform/app (voir external-secrets.tf) :
+  # mots de passe pgAdmin et RDS (main-db), tous deux générés par Terraform
+  # (random_password), lus ensuite par External Secrets Operator via son
+  # propre rôle IRSA scopé.
+  statement {
+    sid    = "AppSecretsManagement"
+    effect = "Allow"
+    actions = [
+      "secretsmanager:CreateSecret",
+      "secretsmanager:DeleteSecret",
+      "secretsmanager:DescribeSecret",
+      "secretsmanager:GetSecretValue",
+      "secretsmanager:PutSecretValue",
+      "secretsmanager:TagResource",
+      "secretsmanager:UntagResource",
+    ]
+    resources = [
+      "arn:aws:secretsmanager:*:*:secret:pgadmin-admin-password-*",
+      "arn:aws:secretsmanager:*:*:secret:odoo-db-password-*",
+    ]
+  }
+
+  # Déchiffrement/chiffrement nécessaires pour créer et mettre à jour les
+  # secrets applicatifs ci-dessus, chiffrés avec la clé par défaut de
+  # Secrets Manager (aucun des deux ne précise de clé dédiée).
+  statement {
+    sid    = "SecretsManagerKmsUsage"
+    effect = "Allow"
+    actions = [
+      "kms:Decrypt",
+      "kms:Encrypt",
+      "kms:GenerateDataKey",
+    ]
+    resources = [data.aws_kms_alias.secretsmanager.target_key_arn]
   }
 
   # Fournisseur OIDC du cluster EKS,
