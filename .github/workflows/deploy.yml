@@ -1,9 +1,18 @@
 name: CD - Deploy to EKS
 
+# Se déclenche automatiquement quand "CI - Build, Scan, Test Docker &
+# Validate Terraform" termine avec succès sur main (voir ci.yml). Le
+# déploiement réel (update-gitops, deploy) reste néanmoins bloqué derrière
+# l'approbation manuelle de l'environment GitHub "production" (Settings >
+# Environments > production > Required reviewers, à configurer une fois
+# dans l'UI GitHub - non gérable depuis ce fichier) : la CI verte ne
+# suffit donc jamais à déployer seule, il faut toujours une confirmation
+# humaine explicite.
 on:
-#  push:
-#    branches:
-#      - main
+  workflow_run:
+    workflows: ["CI - Build, Scan, Test Docker & Validate Terraform"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 env:
@@ -12,13 +21,30 @@ env:
   IMAGE_NAME: ic-webapp
   DOCKERHUB_ID: azeriock
   GITOPS_REPO: LoicPierret/GitOps_Kubernetes
+  # Commit exact à déployer : celui que "workflow_run" vient de valider, ou
+  # à défaut (déclenchement manuel via workflow_dispatch) la tête de main.
+  DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
+  # "workflow_run" se déclenche aussi quand la CI échoue (types: [completed]
+  # couvre tous les statuts) : cette étape bloque toute la suite si ce n'est
+  # pas un succès, sans quoi un échec de CI laisserait quand même passer un
+  # déploiement.
+  check-ci:
+    name: "Vérifie que la CI a réussi"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    steps:
+      - run: echo "CI validée sur main, on continue."
+
   docker-push:
     name: "Push Docker Image"
+    needs: check-ci
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
       - uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKERHUB_ID }}
@@ -34,7 +60,7 @@ jobs:
           # "latest" ne garantit pas.
           tags: |
             ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}:${{ env.DEPLOY_SHA }}
 
   update-gitops:
     name: "Update GitOps repo (image tag)"
@@ -51,7 +77,7 @@ jobs:
 
       - name: Met à jour le tag d'image ic-webapp
         run: |
-          sed -i -E "s|(image: ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}):[^ ]+|\1:${{ github.sha }}|" apps/ic-webapp/deployment.yaml
+          sed -i -E "s|(image: ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}):[^ ]+|\1:${{ env.DEPLOY_SHA }}|" apps/ic-webapp/deployment.yaml
 
       - name: Commit & push si changement
         run: |
@@ -61,18 +87,21 @@ jobs:
             echo "Aucun changement (image déjà à ce tag), rien à pousser."
           else
             git add apps/ic-webapp/deployment.yaml
-            git commit -m "ic-webapp: déploiement de l'image ${{ github.sha }}"
+            git commit -m "ic-webapp: déploiement de l'image ${{ env.DEPLOY_SHA }}"
             git push
           fi
 
   plan:
     name: "Terraform Plan (Production)"
+    needs: check-ci
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -109,6 +138,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
 
       - uses: actions/download-artifact@v4
         with:

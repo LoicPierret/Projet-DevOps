@@ -329,6 +329,7 @@ data "aws_iam_policy_document" "github_actions_infra" {
       "secretsmanager:DeleteSecret",
       "secretsmanager:DescribeSecret",
       "secretsmanager:GetSecretValue",
+      "secretsmanager:GetResourcePolicy", # Lu systématiquement par le provider AWS au refresh, même sans policy définie.
       "secretsmanager:PutSecretValue",
       "secretsmanager:TagResource",
       "secretsmanager:UntagResource",
