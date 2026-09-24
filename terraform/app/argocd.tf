@@ -31,6 +31,18 @@ resource "helm_release" "argocd" {
           "--insecure"
         ]
       }
+      configs = {
+        cm = {
+          # Intervalle de scrutation du dépôt GitOps (défaut : 180s).
+          # Alternative retenue à un webhook GitHub : même gain perçu de
+          # réactivité, sans exposer publiquement argocd-server (toujours en
+          # ClusterIP ci-dessus). Compromis assumé pour un dépôt à faible
+          # fréquence de commits ; sans incidence sur le modèle pull de
+          # GitOps, qui ne dépend que de qui écrit dans le cluster (ArgoCD
+          # seul), pas de la façon dont il détecte un changement Git.
+          "timeout.reconciliation" = "30s"
+        }
+      }
     })
   ]
 }

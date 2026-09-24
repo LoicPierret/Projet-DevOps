@@ -4,6 +4,11 @@ on:
   pull_request:
     branches:
       - main
+  # Revalide l'état réel de main après un merge (pas seulement la proposition
+  # de la PR) : c'est ce run que deploy.yml surveille pour se déclencher.
+  push:
+    branches:
+      - main
 
 env:
   IMAGE_NAME: ic-webapp
