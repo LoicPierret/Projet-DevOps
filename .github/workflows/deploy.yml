@@ -8,18 +8,15 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  EKS_CLUSTER_NAME: main-cluster
   TF_WORKING_DIR: ./terraform/app
   IMAGE_NAME: ic-webapp
   DOCKERHUB_ID: azeriock
+  GITOPS_REPO: LoicPierret/GitOps_Kubernetes
 
 jobs:
   docker-push:
     name: "Push Docker Image"
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: docker/login-action@v3
@@ -32,7 +29,41 @@ jobs:
           context: ./app
           file: ./app/Dockerfile
           push: true
-          tags: ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}:latest
+          # Tag immuable (SHA du commit) en plus de "latest" : GitOps a besoin
+          # d'une référence stable qui ne change jamais de contenu, ce que
+          # "latest" ne garantit pas.
+          tags: |
+            ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  update-gitops:
+    name: "Update GitOps repo (image tag)"
+    needs: docker-push
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Checkout du dépôt GitOps
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GITOPS_REPO }}
+          token: ${{ secrets.GITOPS_PUSH_TOKEN }}
+
+      - name: Met à jour le tag d'image ic-webapp
+        run: |
+          sed -i -E "s|(image: ${{ env.DOCKERHUB_ID }}/${{ env.IMAGE_NAME }}):[^ ]+|\1:${{ github.sha }}|" apps/ic-webapp/deployment.yaml
+
+      - name: Commit & push si changement
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "Aucun changement (image déjà à ce tag), rien à pousser."
+          else
+            git add apps/ic-webapp/deployment.yaml
+            git commit -m "ic-webapp: déploiement de l'image ${{ github.sha }}"
+            git push
+          fi
 
   plan:
     name: "Terraform Plan (Production)"
@@ -68,8 +99,8 @@ jobs:
           retention-days: 1
 
   deploy:
-    name: "Terraform Apply & Kubernetes Deploy"
-    needs: [docker-push, plan]
+    name: "Terraform Apply (Infrastructure)"
+    needs: plan
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -98,13 +129,3 @@ jobs:
 
       - run: terraform apply -auto-approve tfplan
         working-directory: ${{ env.TF_WORKING_DIR }}
-
-      - run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
-
-      - name: Deploy Kubernetes Manifests
-        env:
-          PGADMIN_PASSWORD: ${{ secrets.PGADMIN_PASSWORD }}
-        run: |
-          echo "PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}" > ./kubernetes/pgadmin.env
-          kubectl apply -k ./kubernetes
-          rm -f ./kubernetes/pgadmin.env

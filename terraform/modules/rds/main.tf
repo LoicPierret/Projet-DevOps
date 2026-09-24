@@ -24,13 +24,16 @@ module "rds" {
 
   db_name  = var.db_name
   username = var.db_username
+  password = var.db_password
   port     = var.db_port
 
-  # Mot de passe généré et géré par RDS lui-même, stocké dans Secrets
-  # Manager (rotation incluse). C'est déjà le défaut de ce module, mais on le
-  # rend explicite : un mot de passe fourni par variable serait de toute
-  # façon silencieusement ignoré tant que ce flag est actif.
-  manage_master_user_password = true
+  # Mot de passe fourni explicitement (généré par Terraform en amont, voir
+  # terraform/app/external-secrets.tf) plutôt que délégué à RDS. manage_
+  # master_user_password vaut true par défaut dans ce module : on le
+  # désactive explicitement, sinon var.db_password serait silencieusement
+  # ignoré (c'est exactement ce qui a causé une longue série d'erreurs de
+  # mot de passe lors du premier déploiement de ce projet).
+  manage_master_user_password = false
 
   multi_az               = var.db_multi_az
   vpc_security_group_ids = var.db_vpc_security_group_ids
