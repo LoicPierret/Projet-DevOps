@@ -428,8 +428,7 @@ data "aws_iam_policy_document" "github_actions_infra" {
       "grafana:DeleteWorkspace",
       "grafana:DescribeWorkspaceAuthentication",
       "grafana:UpdateWorkspaceAuthentication",
-      "grafana:UpdatePermissions",
-      "grafana:DescribePermissions",
+      "grafana:DescribeWorkspaceConfiguration", # Lu systématiquement par le provider AWS au refresh.
       "grafana:TagResource",
       "grafana:UntagResource",
       "grafana:ListTagsForResource",
@@ -452,20 +451,6 @@ data "aws_iam_policy_document" "github_actions_infra" {
     }
   }
 
-  # Lecture seule d'IAM Identity Center, utilisée par amg.tf pour retrouver
-  # dynamiquement l'utilisateur (data.aws_identitystore_user) à associer au
-  # workspace Grafana, sans identifiant à coder en dur.
-  statement {
-    sid    = "ReadIdentityCenterForGrafana"
-    effect = "Allow"
-    actions = [
-      "sso:ListInstances",
-      "identitystore:DescribeUser",
-      "identitystore:ListUsers",
-      "identitystore:GetUserId",
-    ]
-    resources = ["*"]
-  }
 }
 
 resource "aws_iam_role_policy" "github_actions_infra" {

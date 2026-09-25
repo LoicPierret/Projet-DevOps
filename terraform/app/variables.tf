@@ -41,9 +41,3 @@ variable "gitops_bootstrap_path" {
   type        = string
   default     = "bootstrap"
 }
-
-variable "admin_user_email" {
-  description = "Email de l'utilisateur IAM Identity Center à associer en tant qu'administrateur du workspace Amazon Managed Grafana."
-  type        = string
-  default     = "loicpierret@live.fr"
-}

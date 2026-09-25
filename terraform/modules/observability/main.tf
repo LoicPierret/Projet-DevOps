@@ -219,26 +219,24 @@ resource "helm_release" "aws_for_fluent_bit" {
 # ─────────────────────────────────────────────────────────────────────────
 # Amazon Managed Grafana (AMG)
 # ─────────────────────────────────────────────────────────────────────────
-# Étape manuelle restante après l'apply, non automatisable ici sans le
-# provider Terraform "grafana" séparé (authentification propre à l'API
-# Grafana, hors scope pour l'instant) : ajouter, dans l'UI Grafana, les
-# sources de données Prometheus (endpoint = aws_prometheus_workspace.main)
-# et CloudWatch (région + log group). "data_sources" ci-dessous ne fait
-# qu'autoriser le rôle IAM à lire ces services AWS ; il ne crée pas la
-# connexion dans Grafana lui-même.
-
-data "aws_ssoadmin_instances" "main" {}
-
-data "aws_identitystore_user" "admin" {
-  identity_store_id = tolist(data.aws_ssoadmin_instances.main.identity_store_ids)[0]
-
-  alternate_identifier {
-    unique_attribute {
-      attribute_path  = "emails.value"
-      attribute_value = var.admin_user_email
-    }
-  }
-}
+# Étapes manuelles restantes après l'apply, non automatisées :
+# 1. Associer un administrateur au workspace (IAM Identity Center → Grafana
+#    → "Assign new user or group in Identity Center"). Volontairement HORS
+#    Terraform : gérer ça via aws_grafana_role_association exige, côté rôle
+#    CI, des policies larges et privilégiées au niveau du compte entier
+#    (AWSSSODirectoryAdministrator, AWSSSOMasterAccountAdministrator,
+#    documentées par AWS) — un accès admin sur tout IAM Identity Center,
+#    disproportionné pour automatiser une association qui ne change jamais
+#    après sa création. Constaté à l'usage : même en ajoutant action par
+#    action ce que demandait chaque erreur (grafana:ListPermissions...), le
+#    service échoue quand même ("Unable to list users from managed
+#    application") tant que ces policies larges ne sont pas accordées.
+# 2. Ajouter, dans l'UI Grafana, les sources de données Prometheus (endpoint
+#    = aws_prometheus_workspace.main) et CloudWatch (région + log group).
+#    Non automatisable ici sans le provider Terraform "grafana" séparé
+#    (authentification propre à l'API Grafana, hors scope). "data_sources"
+#    ci-dessous ne fait qu'autoriser le rôle IAM à lire ces services AWS ;
+#    il ne crée pas la connexion dans Grafana lui-même.
 
 # Rôle assumé par le service Grafana (pas par un pod du cluster : AMG est un
 # service managé, hors EKS) pour lire AMP et CloudWatch en son nom.
@@ -293,10 +291,4 @@ resource "aws_iam_role_policy_attachment" "grafana_prometheus" {
 resource "aws_iam_role_policy_attachment" "grafana_cloudwatch" {
   role       = aws_iam_role.grafana.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonGrafanaCloudWatchAccess"
-}
-
-resource "aws_grafana_role_association" "admin" {
-  workspace_id = aws_grafana_workspace.main.id
-  role         = "ADMIN"
-  user_ids     = [data.aws_identitystore_user.admin.user_id]
 }

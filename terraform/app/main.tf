@@ -166,7 +166,6 @@ module "observability" {
   oidc_provider_arn = module.eks.oidc_provider_arn
   aws_region        = var.aws_region
   environment       = var.environment
-  admin_user_email  = var.admin_user_email
 
   # Le chart kube-prometheus-stack et aws-for-fluent-bit créent aussi des
   # Service (webhook du prometheus-operator, kube-state-metrics...) : même
