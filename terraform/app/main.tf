@@ -156,3 +156,21 @@ module "ssl_certificate" {
   environment = var.environment
 }
 
+# Supervision du cluster : métriques (AMP), logs applicatifs (CloudWatch),
+# visualisation (AMG). Détail complet et justifications dans le module,
+# voir modules/observability/main.tf.
+module "observability" {
+  source = "../modules/observability"
+
+  cluster_name      = module.eks.cluster_name
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  aws_region        = var.aws_region
+  environment       = var.environment
+
+  # Le chart kube-prometheus-stack et aws-for-fluent-bit créent aussi des
+  # Service (webhook du prometheus-operator, kube-state-metrics...) : même
+  # précaution que pour les autres composants face au webhook du contrôleur
+  # ALB pas encore prêt (voir alb-controller.tf).
+  depends_on = [module.eks, helm_release.aws_load_balancer_controller]
+}
+

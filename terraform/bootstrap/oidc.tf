@@ -198,6 +198,11 @@ data "aws_iam_policy_document" "github_actions_infra" {
       "arn:aws:iam::*:role/alb-controller-*",
       "arn:aws:iam::*:role/external-dns-*",
       "arn:aws:iam::*:role/external-secrets-*",
+      "arn:aws:iam::*:role/prometheus-*",
+      "arn:aws:iam::*:role/fluent-bit-*",
+      # Rôle assumé par le service Grafana (aws_iam_role.grafana), pas par un
+      # pod IRSA : nom fixe plutôt que préfixe, scopé à l'ARN exact.
+      "arn:aws:iam::*:role/grafana-workspace-main-cluster",
       # Policies créées par le module iam-role-for-service-accounts-eks
       # (name_prefix = policy_name_prefix "AmazonEKS_" + nom de la policy).
       "arn:aws:iam::*:policy/AmazonEKS_EBS_CSI_Policy-*",
@@ -371,6 +376,81 @@ data "aws_iam_policy_document" "github_actions_infra" {
     ]
     resources = ["arn:aws:iam::*:oidc-provider/oidc.eks.*.amazonaws.com/id/*"]
   }
+
+  # Workspace Amazon Managed Prometheus (amp-prometheus.tf). CreateWorkspace
+  # ne peut pas être scopée à un ARN connu à l'avance (la ressource n'existe
+  # pas encore) ; les autres actions le sont, une fois le workspace créé.
+  statement {
+    sid    = "AmpWorkspaceManagement"
+    effect = "Allow"
+    actions = [
+      "aps:CreateWorkspace",
+      "aps:DescribeWorkspace",
+      "aps:DeleteWorkspace",
+      "aps:TagResource",
+      "aps:UntagResource",
+      "aps:ListTagsForResource",
+      "aps:DescribeLoggingConfiguration", # Lu systématiquement par le provider AWS au refresh, même sans logging configuré.
+    ]
+    resources = ["*"]
+  }
+
+  # Log group CloudWatch des logs applicatifs (odoo, pg-admin, ic-webapp),
+  # alimenté par Fluent Bit (fluent-bit.tf). Distinct du log group du plan de
+  # contrôle EKS (EksControlPlaneLogGroup ci-dessus), scope différent.
+  statement {
+    sid    = "ApplicationLogGroupManagement"
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:DeleteLogGroup",
+      "logs:PutRetentionPolicy",
+      "logs:DeleteRetentionPolicy",
+      "logs:TagResource",
+      "logs:UntagResource",
+      "logs:ListTagsForResource",
+    ]
+    resources = [
+      "arn:aws:logs:*:*:log-group:/eks/main-cluster/application",
+      "arn:aws:logs:*:*:log-group:/eks/main-cluster/application:*",
+    ]
+  }
+
+  # Workspace Amazon Managed Grafana (amg.tf). CreateWorkspace ne peut pas
+  # être scopée à un ARN connu à l'avance, comme pour AMP ci-dessus.
+  statement {
+    sid    = "GrafanaWorkspaceManagement"
+    effect = "Allow"
+    actions = [
+      "grafana:CreateWorkspace",
+      "grafana:DescribeWorkspace",
+      "grafana:UpdateWorkspace",
+      "grafana:DeleteWorkspace",
+      "grafana:DescribeWorkspaceAuthentication",
+      "grafana:UpdateWorkspaceAuthentication",
+      "grafana:DescribeWorkspaceConfiguration", # Lu systématiquement par le provider AWS au refresh.
+      "grafana:TagResource",
+      "grafana:UntagResource",
+      "grafana:ListTagsForResource",
+    ]
+    resources = ["*"]
+  }
+
+  # iam:PassRole vers le rôle assumé par le service Grafana, requis pour lui
+  # associer ce rôle à la création du workspace (amg.tf).
+  statement {
+    sid       = "PassRoleToGrafana"
+    effect    = "Allow"
+    actions   = ["iam:PassRole"]
+    resources = ["arn:aws:iam::*:role/grafana-workspace-main-cluster"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["grafana.amazonaws.com"]
+    }
+  }
+
 }
 
 resource "aws_iam_role_policy" "github_actions_infra" {
