@@ -390,6 +390,7 @@ data "aws_iam_policy_document" "github_actions_infra" {
       "aps:TagResource",
       "aps:UntagResource",
       "aps:ListTagsForResource",
+      "aps:DescribeLoggingConfiguration", # Lu systématiquement par le provider AWS au refresh, même sans logging configuré.
     ]
     resources = ["*"]
   }
