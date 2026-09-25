@@ -25,6 +25,20 @@ module "eks" {
   addons = {
     vpc-cni = {
       before_compute = true
+      # Sans ça, le nombre max de pods par nœud est calculé uniquement à
+      # partir du nombre d'IP disponibles par ENI (t3.medium : 17 pods max),
+      # une limite atteinte en pratique avec ArgoCD + kube-prometheus-stack +
+      # Fluent Bit en plus des apps. Le "prefix delegation" alloue des blocs
+      # d'IP entiers par ENI plutôt qu'une IP à la fois, augmentant fortement
+      # cette limite sans changer de type d'instance ni ajouter de nœud.
+      # N'affecte que les nœuds créés APRÈS ce changement (calculé une seule
+      # fois, au démarrage du nœud) : sans effet sur les 2 nœuds déjà actifs.
+      configuration_values = jsonencode({
+        env = {
+          ENABLE_PREFIX_DELEGATION = "true"
+          WARM_PREFIX_TARGET       = "1"
+        }
+      })
     }
     coredns = {}
     eks-pod-identity-agent = {
@@ -53,6 +67,35 @@ module "eks" {
 
         AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
       }
+
+      # Le nombre max de pods par nœud est calculé par nodeadm à partir d'une
+      # table statique par type d'instance (17 pour t3.medium), SANS tenir
+      # compte du prefix delegation activé sur le CNI (vpc-cni ci-dessus) :
+      # constaté à l'apply, un nœud fraîchement créé avec le CNI en prefix
+      # delegation a quand même récupéré max-pods=17. Il faut fournir la
+      # valeur explicitement. Nos nœuds tournent en AL2023, qui utilise
+      # nodeadm (pas l'ancien bootstrap.sh) : le réglage passe par un
+      # document cloud-init "pre-nodeadm" au format NodeConfig, pas par
+      # bootstrap_extra_args (ignoré sur AL2023).
+      # 110 : valeur standard recommandée par l'outil AWS max-pods-
+      # calculator.sh en prefix delegation, largement suffisante ici (bien
+      # au-delà du nombre de pods réellement déployés).
+      cloudinit_pre_nodeadm = [
+        {
+          content_type = "application/node.eks.aws"
+          content = yamlencode({
+            apiVersion = "node.eks.aws/v1alpha1"
+            kind       = "NodeConfig"
+            spec = {
+              kubelet = {
+                config = {
+                  maxPods = 110
+                }
+              }
+            }
+          })
+        }
+      ]
     }
   }
 
