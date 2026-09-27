@@ -16,6 +16,12 @@ L'objectif de l'option A est de montrer une maîtrise réaliste de l'ingénierie
 
 ## 🏗️ Architecture (Option A)
 
+![Schéma d'architecture AWS EKS](docs/architecture.png)
+
+<sub>Généré avec la librairie Python [`diagrams`](https://diagrams.mingrammer.com/) — script source dans `docs/generate_architecture.py` (régénérer avec `python docs/generate_architecture.py`, nécessite Graphviz).</sub>
+
+Flux CI/CD (au-dessus du schéma d'infrastructure) :
+
 ```
 GitHub (LoicPierret/Projet-DevOps)          GitHub (LoicPierret/GitOps_Kubernetes, public)
   │                                            │
