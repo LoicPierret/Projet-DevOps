@@ -57,6 +57,15 @@ module "eks" {
   vpc_id             = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnets
 
+  # Tier "système" à taille fixe et réduite : héberge les composants de
+  # plateforme (CoreDNS, VPC CNI, EBS CSI, ALB Controller, ArgoCD, ESO,
+  # observabilité) et Karpenter lui-même (voir karpenter.tf), qui prend le
+  # relais pour toute capacité supplémentaire (workloads applicatifs, pics de
+  # charge). max_size=2 laisse la marge nécessaire au remplacement progressif
+  # d'un nœud (rolling update) sans jamais descendre sous 1 nœud disponible.
+  node_group_min_size     = 1
+  node_group_max_size     = 2
+  node_group_desired_size = 1
 
   access_entries = {
     mon_acces_perso = {

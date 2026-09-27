@@ -1,0 +1,31 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: default
+spec:
+  template:
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: default
+      requirements:
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64"]
+        # On-demand uniquement : pas de gestion des interruptions spot (SQS +
+        # EventBridge volontairement exclus, voir commentaire dans
+        # karpenter.tf). Un choix Spot sans cette gestion laisserait les pods
+        # se faire couper sans préavis ni ré-ordonnancement propre.
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["on-demand"]
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values: {{ .Values.instanceTypes | toYaml | nindent 10 }}
+  limits:
+    cpu: {{ .Values.cpuLimit | quote }}
+    memory: {{ .Values.memoryLimit | quote }}
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 5m

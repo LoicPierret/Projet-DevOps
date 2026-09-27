@@ -55,6 +55,24 @@ jobs:
           docker rm -f test_icwebapp
           exit 1
 
+  terraform-security-scan:
+    name: "Terraform Security Scan (tfsec)"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Scan de sécurité statique (pas besoin de credentials AWS ni d'init :
+      # analyse directement le code Terraform). Couvre bootstrap/, app/ et
+      # modules/ en une passe (récursif par défaut).
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: terraform
+          soft_fail: false
+
   terraform-test:
     name: "Terraform Lint, Validate & Plan (PR)"
     runs-on: ubuntu-latest

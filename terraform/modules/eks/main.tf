@@ -45,6 +45,9 @@ module "eks" {
       before_compute = true
     }
     kube-proxy = {}
+    # Addon managé AWS : expose l'API de métriques (CPU/mémoire) consommée
+    # par le HorizontalPodAutoscaler (apps/ic-webapp, dépôt GitOps).
+    metrics-server = {}
   }
 
   node_security_group_tags = {
