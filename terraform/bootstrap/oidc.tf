@@ -200,9 +200,14 @@ data "aws_iam_policy_document" "github_actions_infra" {
       "arn:aws:iam::*:role/external-secrets-*",
       "arn:aws:iam::*:role/prometheus-*",
       "arn:aws:iam::*:role/fluent-bit-*",
+      "arn:aws:iam::*:role/karpenter-controller-*",
       # Rôle assumé par le service Grafana (aws_iam_role.grafana), pas par un
       # pod IRSA : nom fixe plutôt que préfixe, scopé à l'ARN exact.
       "arn:aws:iam::*:role/grafana-workspace-main-cluster",
+      # Rôle assumé par les nœuds provisionnés par Karpenter (aws_iam_role.
+      # karpenter_node, karpenter.tf) : nom fixe (référencé par nom dans
+      # l'EC2NodeClass), pas de préfixe généré.
+      "arn:aws:iam::*:role/karpenter-node-main-cluster",
       # Policies créées par le module iam-role-for-service-accounts-eks
       # (name_prefix = policy_name_prefix "AmazonEKS_" + nom de la policy).
       "arn:aws:iam::*:policy/AmazonEKS_EBS_CSI_Policy-*",

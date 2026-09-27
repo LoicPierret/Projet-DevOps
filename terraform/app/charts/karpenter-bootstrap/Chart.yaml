@@ -1,0 +1,10 @@
+apiVersion: v2
+name: karpenter-bootstrap
+description: >-
+  Chart local minimal ("wrapper") créant le NodePool et l'EC2NodeClass par
+  défaut de Karpenter. Même technique que charts/argocd-bootstrap et
+  charts/external-secrets-bootstrap : évite un provider Terraform tiers pour
+  créer des ressources personnalisées (CRD), fiable même quand leur schéma
+  n'est pas encore connu au plan.
+type: application
+version: 0.1.0
